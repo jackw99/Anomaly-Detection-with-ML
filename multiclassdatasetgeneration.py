@@ -23,20 +23,20 @@ f8 = np.random.normal(4, 0.03, 50000)
 f9 = np.random.normal(15, 7, 50000)
 f10 = np.random.normal(56, 12.5, 50000)
 f11 = np.random.beta(5, 4, 50000)
-f12 = np.random.beta(10, 2, 50000)
-f13 = np.random.normal(-4, 0.05, 50000)
-f14 = np.random.random(50000)
-f15 = np.random.normal(45, 23, 50000)
-f16 = np.random.normal(89, 14, 50000)
-f17 = np.random.random(50000)
-f18 = np.random.normal(150, 34, 50000)
-f19 = np.random.normal(2, 0.5, 50000)
-f20 = np.random.exponential(10, 50000)
+#f12 = np.random.beta(10, 2, 50000)
+#f13 = np.random.normal(-4, 0.05, 50000)
+#f14 = np.random.random(50000)
+#f15 = np.random.normal(45, 23, 50000)
+#f16 = np.random.normal(89, 14, 50000)
+#f17 = np.random.random(50000)
+#f18 = np.random.normal(150, 34, 50000)
+#f19 = np.random.normal(2, 0.5, 50000)
+#f20 = np.random.exponential(10, 50000)
 
 #appending numpy arrays to overall features array
 all = []
 #loop through global variables appending arrays of features
-for i in range(20):
+for i in range(11):
   all.append(globals()[f"f{i+1}"])
 #Transposing so each column is now a feature 
 all = np.array(all)
@@ -60,9 +60,9 @@ def inject(features, mean, std):
     #random chance to inject or leave
     if np.random.random() < 0.3333:
       #how many sensors to attack
-      sensors_to_attack = np.random.randint(6, 14)
+      sensors_to_attack = np.random.randint(5, 9)
       #what indices to attack
-      indices = np.random.choice(range(20), sensors_to_attack, replace=False)
+      indices = np.random.choice(range(11), sensors_to_attack, replace=False)
       #what values to inject into indices
       values_to_inject = np.random.normal(mean, std, sensors_to_attack)
       #negating values from indices in row
@@ -94,7 +94,7 @@ def Dos(features, labels, scale=1):
   for i in range(len(features)):
     if np.random.random() < 0.3333:
       #send in that dos
-      to_send = list(np.random.random(20)*scale)
+      to_send = list(np.random.random(11)*scale)
       #insertion
       features.insert(i, to_send)
       #label insertion
@@ -141,7 +141,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 #initializing model
-rf = RandomForestClassifier(n_estimators=10, max_depth=2, criterion='entropy', random_state=5)
+rf = RandomForestClassifier(n_estimators=200, max_depth=4, criterion='entropy', random_state=5)
 #fitting training data
 rf.fit(X_train, y_train)
 
@@ -149,4 +149,45 @@ rf.fit(X_train, y_train)
 y_pred = rf.predict(X_test)
 #accuracy score of predictions
 print(f"Accuracy of Random Forest: {round(accuracy_score(y_test, y_pred), 2)*100}%")
+
+"""### Testing Model on Load Min Supply Data Set"""
+
+#pandas for load min supply data
+import pandas as pd
+
+#getting data from files
+features = np.array(pd.read_csv(r'features.csv', sep=',', header=0))
+labels = np.array(pd.read_csv(r'labels.csv', sep=',', header=0))
+
+#making lists for DoS injection
+labels = [list(i) for i in labels]
+features = [list(i) for i in features]
+
+#change int 2 to list [2]
+labels = [i if i != 2 else [2] for i in labels]
+
+#injecting DoS
+features, labels = Dos(features, labels, scale=50)
+
+print(labels)
+
+#np arrays for ML
+features = np.array(features)
+labels = np.array(labels)
+
+#getting accuracy
+y_pred = rf.predict(features)
+#accuracy score of predictions
+print(f"Accuracy of Random Forest on LoadMinSupply: {round(accuracy_score(labels, y_pred), 2)*100}%")
+
+#testing turning 2 int into [2]
+nums = [[0], [1], [1], [0], [0], 2, [1], [1], [0], 2, [0], [1], 2]
+
+nums = [i if i != 2 else [2] for i in nums]
+
+nums
+
+#NEED TO FIX 2 LABEL PROBLEM
+#- type of label 2 insertion is different to original label
+#- FULLY UNDERSTAND STRUCTURE AND DATA TYPES OF FEATURES AND LABELS BEFORE WORKING RF MODEL AND GET THIS ONE TO PRODUCE EXACT SAME STRUCTURE
 
