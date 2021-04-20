@@ -110,17 +110,43 @@ features = np.array(features)
 labels = np.array(labels)
 
 #lennies
-print(f"length of features: {len(features)}\n length of labels: {len(labels)}")
+print(f"length of features: {len(features)}\nlength of labels: {len(labels)}")
 
 """###Train test data"""
 
 #split for train and test data
 from sklearn.model_selection import train_test_split
 
+#Splitting data into train and test data
+X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.3, random_state=5, shuffle=True)
 
+"""###Feature Scaling
+- normalizing data
+- subtracts mean and divides by unit variance
+"""
+
+#importing scaler
+from sklearn.preprocessing import StandardScaler
+
+#getting scaler
+scaler = StandardScaler()
+#transforming train and test features
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
 
 """###Machine Learning"""
 
 #Random Forest for initial test
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+#initializing model
+rf = RandomForestClassifier(n_estimators=10, max_depth=2, criterion='entropy', random_state=5)
+#fitting training data
+rf.fit(X_train, y_train)
+
+#getting accuracy
+y_pred = rf.predict(X_test)
+#accuracy score of predictions
+print(f"Accuracy of Random Forest: {round(accuracy_score(y_test, y_pred), 2)*100}%")
 
