@@ -35,23 +35,21 @@ f20 = np.random.exponential(10, 50000)
 
 #appending numpy arrays to overall features array
 all = []
-
 #loop through global variables appending arrays of features
 for i in range(20):
   all.append(globals()[f"f{i+1}"])
-
 #Transposing so each column is now a feature 
 all = np.array(all)
 features = all.transpose()
 
-#label creation
-labels = [0 for i in range(len(features))]
-
-len(features)
-
-len(labels)
-
-"""### FDIA Function"""
+"""### FDIA Function
+- Takes generated features
+- Injects half of the rows
+- Chooses random amount of readings to inject
+- at random indices
+- generates a random gaussian distribution according to params to negate from values
+- generates labels as it iterates, 0 for untouched, 1 for compromised
+"""
 
 #False Data Injection Function
 def inject(features, mean, std):
@@ -60,7 +58,7 @@ def inject(features, mean, std):
   #iterating through all features
   for row in features:
     #random chance to inject or leave
-    if np.random.random() > 0.5:
+    if np.random.random() < 0.3333:
       #how many sensors to attack
       sensors_to_attack = np.random.randint(6, 14)
       #what indices to attack
@@ -81,8 +79,48 @@ inj_tuple = inject(features, 2, 0.5)
 features = inj_tuple[0]
 labels = inj_tuple[1]
 
-#Simulating FDIA on generated data set
+"""###Dos Function
+- iterates through all rows
+- if random values less than a third
+- inject randomly generated reading 
+- append label of 2 for DoS
+"""
 
-"""###Dos Function"""
+#Convertion of features back to list for speedup
+features = [list(i) for i in features]
 
-#Simulating DoS on generated data set
+def Dos(features, labels, scale=1):
+  #iterate through features
+  for i in range(len(features)):
+    if np.random.random() < 0.3333:
+      #send in that dos
+      to_send = list(np.random.random(20)*scale)
+      #insertion
+      features.insert(i, to_send)
+      #label insertion
+      labels.insert(i, 2)
+  return (features, labels)
+
+#Simulating DoS and getting final FDIA and DoS data and labels
+final_data = Dos(features, labels, scale=50)
+features, labels = final_data[0], np.array(final_data[1])
+
+#np arrays for ML
+features = np.array(features)
+labels = np.array(labels)
+
+#lennies
+print(f"length of features: {len(features)}\n length of labels: {len(labels)}")
+
+"""###Train test data"""
+
+#split for train and test data
+from sklearn.model_selection import train_test_split
+
+
+
+"""###Machine Learning"""
+
+#Random Forest for initial test
+from sklearn.ensemble import RandomForestClassifier
+
