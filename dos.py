@@ -40,6 +40,12 @@ print(f" Means for all columns in the data set: \n{col_means}")
 col_vars = [np.array(df.get([f'{i}'])).var() for i in range(1, 12)]
 print(f" Variance for all columns in the data set: \n{col_vars}")
 
+"""####Plot the distributions of each feature"""
+
+from matplotlib import pyplot as plt
+
+
+
 """## Denial of Service Data Injection
 - Injecting False data into the data set to mimic a DoS
 - Then convert to appropriate format for ML
@@ -88,13 +94,15 @@ labels = np.array(labels)
 
 print(f"--------DATA-INJECTED-------- (In {t1-t0} Seconds)")
 
+features.shape
+
 #Storing features and labels as csv
-"""
-np.savetxt('features.csv', features, delimiter=',')
-np.savetxt('labels.csv', labels, delimiter=',')
-features = np.array(pd.read_csv('features.csv'))
-labels = np.array(pd.read_csv('labels.csv')).astype(int)
-"""
+#"""
+np.savetxt('min_features.csv', features, delimiter=',')
+np.savetxt('min_labels.csv', labels, delimiter=',')
+min_features = np.array(pd.read_csv('min_features.csv'))
+min_labels = np.array(pd.read_csv('min_labels.csv')).astype(int)
+#"""
 
 """## Train and Test Data"""
 
@@ -102,7 +110,7 @@ labels = np.array(pd.read_csv('labels.csv')).astype(int)
 from sklearn.model_selection import train_test_split
 
 #train test split to split data into training and test data
-X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.3, random_state=1)
+X_train, X_test, y_train, y_test = train_test_split(min_features, min_labels, test_size=0.3, random_state=1)
 
 """## Decision Tree Classifier"""
 
@@ -212,7 +220,7 @@ print(cnn1.summary())
 cnn1.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 #Training the model
-cnn1.fit(X_train_cnn, y_train, epochs=25, batch_size=500, validation_split=0.2, verbose=2)
+cnn1.fit(X_train_cnn, y_train, epochs=5, batch_size=500, validation_split=0.2, verbose=2)
 
 """### CNN2 - achieved 100%"""
 
@@ -231,7 +239,7 @@ print(cnn2.summary())
 cnn2.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 #Training the model
-cnn2.fit(X_train_cnn, y_train, epochs=25, batch_size=500, validation_split=0.2, verbose=0)
+cnn2.fit(X_train_cnn, y_train, epochs=5, batch_size=500, validation_split=0.2, verbose=0)
 
 """### CNN3 - achieved 100%"""
 
@@ -247,7 +255,7 @@ print(cnn3.summary())
 cnn3.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 #Training the model
-cnn3.fit(X_train_cnn, y_train, epochs=25, batch_size=500, validation_split=0.2, verbose=0)
+cnn3.fit(X_train_cnn, y_train, epochs=5, batch_size=500, validation_split=0.2, verbose=0)
 
 """## CNN Model Accuracy Scores"""
 
@@ -268,10 +276,131 @@ cnn2_preds = cnn2.evaluate(X1_test, y_test, verbose=0)
 #accuracy of CNN2
 print(f"Accuracy of CNN2: {round(cnn2_preds[1]*100)}%")
 
+X1_test.shape
+
+y_test.shape
+
 """###### CNN3"""
 
 #Predictions with CNN
 cnn3_preds = cnn3.evaluate(X1_test, y_test, verbose=0)
 #accuracy of CNN2
 print(f"Accuracy of CNN3: {round(cnn3_preds[1]*100)}%")
+
+"""####Testing on Max Supply"""
+
+df = pd.read_csv(r'LoadMaxPower.csv')
+
+df.head(2)
+
+"""######Injecting DoS Into test data"""
+
+#Performing the false data injection
+t0 = time.perf_counter()   #timing
+
+features = []
+labels = []
+#looping through each row in df
+for index, values in df.iterrows():
+  #if statement to inject half of the data
+  if np.random.random() < 0.5:
+    #generating a false reading with 11 random values
+    false_reading = np.random.randint(999, 1001, 11)
+    #append 1 to label of row as this network reading is a false reading
+    labels.append(1)
+    #append new injected values to features as list
+    features.append(false_reading)
+    #setting row equal to new injected row in dataframe
+    #initial_data.at[index] = false_reading
+  else:
+    #append normal values and 0 label as no injection takes place
+    features.append(list(values[2:]))
+    labels.append(0)
+
+t1 = time.perf_counter()   #timing
+
+#Features and Labels into a numpy array for ML
+features = np.array(features)
+labels = np.array(labels)
+
+print(f"--------DATA-INJECTED-------- (In {t1-t0} Seconds)")
+
+#Storing max features and labels as csv
+#"""
+np.savetxt('max_features.csv', features, delimiter=',')
+np.savetxt('max_labels.csv', labels, delimiter=',')
+max_features = np.array(pd.read_csv('max_features.csv'))
+max_labels = np.array(pd.read_csv('max_labels.csv')).astype(int)
+#"""
+
+"""####Getting the models predictions and plotting confusion matrices"""
+
+#Decision Tree predictions
+dt_pred = tree.predict(max_features)
+print(f" Decision Tree: {accuracy_score(max_labels, dt_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, dt_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#KNN
+knn_pred = knn_model.predict(max_features)
+print(f" KNN: {accuracy_score(max_labels, knn_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, knn_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#SVM
+svm_pred = svm.predict(max_features)
+print(f" SVM: {accuracy_score(max_labels, svm_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, svm_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#Random Forest
+rf_pred = rf_model.predict(max_features)
+print(f" Random Forest: {accuracy_score(max_labels, rf_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, rf_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#XGBoost
+xgb_pred = x_model.predict(max_features)
+print(f" XGBoost: {accuracy_score(max_labels, xgb_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, xgb_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#reshape features for CNN preds
+max_features_re = max_features.copy().reshape(len(max_features), 11, 1)
+
+#Predictions with CNN1
+cnn1_pred = cnn1.predict(max_features_re)
+cnn1_pred = np.array([0 if i[0] < 0.5 else 1 for i in cnn1_pred])
+#accuracy of CNN1
+print(f"Accuracy of CNN1: {accuracy_score(max_labels, cnn1_pred)}%")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, cnn1_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#Predictions with CNN2
+cnn2_pred = cnn2.predict(max_features_re)
+cnn2_pred = np.array([0 if i[0] < 0.5 else 1 for i in cnn2_pred])
+#accuracy of CNN2
+print(f"Accuracy of CNN2: {accuracy_score(max_labels, cnn2_pred)}%")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, cnn2_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#Predictions with CNN3
+cnn3_pred = cnn3.predict(max_features_re)
+cnn3_pred = np.array([0 if i[0] < 0.5 else 1 for i in cnn3_pred])
+#accuracy of CNN3
+print(f"Accuracy of CNN3: {accuracy_score(max_labels, cnn3_pred)}%")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, cnn3_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+
+
+"""###Ensemble Classifier - SVM, Random Forest, XGBoost, CNN2"""
 

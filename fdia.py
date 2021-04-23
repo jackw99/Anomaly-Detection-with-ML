@@ -58,60 +58,64 @@ print(f" Variance for all columns in the data set: \n{col_vars}")
 #to avoid tampering of original df
 initial_data = df.copy()
 
-np.random.normal(0.6, 0.15, 5)
+#False Data Injection Function
+def inject(data, mean, std):
+  #unpacking tuple as lists
+  features = [list(i) for i in data[0]]
+  labels = list(data[1])
+  #iterating through all features
+  for i in range(len(features)):
+    #random chance to inject or leave
+    if np.random.random() < 0.3333:
+      #what values to inject into reading
+      values_to_inject = np.random.normal(mean, std, len(features[0]))
+      #negating values from indices in row
+      features[i] = [a - b for a, b in zip(features[i], values_to_inject)]
+      #append 1 for compromised reading
+      labels[i] += 1
+  #return tuple of updated features and generated labels
+  return (np.array(features), np.array(labels))
 
-#data injecting function
-def inject(target):
-  #Selecting how many sensors to attack
-  sensors_to_attack = np.random.randint(2,6)
-  #Indices of target readings
-  indices = np.random.choice((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), sensors_to_attack, replace = False) + 2 # skipping first data and time values
-  #Getting values to inject, Gaussian distribution 0.1 deviation around 0.2
-  values_to_inject = np.random.normal(0.6, 0.15, sensors_to_attack)
-  #Negating values from target series
-  target[indices] -= values_to_inject
-  #return of series after injection
-  #print(f"injecting values: {values_to_inject}, at indices: {indices}")
-  #print(indices)
-  return [target, indices - 2]
-
-#Performing the false data injection
-t0 = time.perf_counter()   #timing
-
-features = []
-labels = []
-#looping through each row in df
-for index, values in initial_data.iterrows():
-  #if statement to inject half of the data
-  if np.random.random() < 0.5:
-    #get injected row through function call, passing in series of sensor values
-    injected_row = inject(values)
-    #append 1 to label of row as this network reading has been compromised
-    labels.append(1)
-    #append new injected values to features as list
-    features.append(list(injected_row[0][2:]))
-    #setting row equal to new injected row in dataframe
-    initial_data.at[index] = injected_row[0]
-  else:
-    #append normal values and 0 label as no injection takes place
-    features.append(list(values[2:]))
-    labels.append(0)
-
-t1 = time.perf_counter()   #timing
-
-#Features and Labels into a numpy array for ML
-features = np.array(features)
-labels = np.array(labels)
-
-print(f"--------DATA-INJECTED-------- (In {t1-t0} Seconds)")
+initial_data.drop(initial_data.columns[[0,1]], axis=1, inplace=True)
+injection = inject((initial_data.to_numpy(), [0 for i in range(len(initial_data))]), 0.5, 0.05)
+features, labels = injection[0], injection[1]
 
 #Storing features and labels as csv
-"""
-np.savetxt('features.csv', features, delimiter=',')
-np.savetxt('labels.csv', labels, delimiter=',')
-features = np.array(pd.read_csv('features.csv'))
-labels = np.array(pd.read_csv('labels.csv')).astype(int)
-"""
+
+#np.savetxt('features.csv', features, delimiter=',')
+#np.savetxt('labels.csv', labels, delimiter=',')
+#features = np.array(pd.read_csv('features.csv'))
+#labels = np.array(pd.read_csv('labels.csv')).astype(int)
+
+"""###Data Set Generation (For Testing On Other DataSets)"""
+
+#Random Generation of Data Set for testing purposes
+def generateDataSet(num_features, readings):
+  data_set = []
+  #create features according to param
+  for i in range(num_features):
+    #threshold value
+    thresh = np.random.random()
+    #randomises variance that is added
+    if thresh < 0.26:
+      #normal distribution
+      data_set.append(list(np.random.normal(20, 2, readings)))
+    elif 0.51 > thresh >= 0.26:
+      #exponential distribution
+      data_set.append(list(np.random.exponential(10, readings)))
+    elif 0.76 > thresh >= 0.51:
+      #random samples between 0 and 1
+      data_set.append(list(np.random.random(readings)))
+    else:
+      #beta distribution
+      data_set.append(list(np.random.beta(5, 4, readings)))
+  return (np.array(data_set).transpose(), np.array([0 for i in range(readings)]))
+
+#generate features and labels and inject 0.5, 0.05
+fdia_data = inject(generateDataSet(11, 10000), 0.5, 0.05)
+
+#Splitting data into train and test data
+X_train, X_test, y_train, y_test = train_test_split(fdia_data[0], fdia_data[1], test_size=0.3, random_state=5, shuffle=True)
 
 """## Train and Test Data"""
 
@@ -120,22 +124,6 @@ from sklearn.model_selection import train_test_split
 
 #train test split to split data into training and test data
 X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.3, random_state=1, shuffle=True)
-
-"""### Linear Regression Classifier"""
-
-#import needed model
-from sklearn.linear_model import LogisticRegression
-#metric for accuracy score of classifications
-from sklearn.metrics import accuracy_score
-
-#lin reg initialized
-lin = LogisticRegression()
-#fitting training data
-lin.fit(X_train, y_train.ravel())
-#getting predictions
-lin_preds = lin.predict(X_test)
-#accuracy score of Linear Regression Classifier
-print(f"Accuracy of Linear Regression: {round(accuracy_score(y_test, lin_preds)*100)}")
 
 """## Decision Tree Classifier"""
 
@@ -243,7 +231,7 @@ print(cnn1.summary())
 cnn1.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 #Training the model
-cnn1.fit(X_train_cnn, y_train, epochs=25, batch_size=500, validation_split=0.2, verbose=2)
+cnn1.fit(X_train_cnn, y_train, epochs=5, batch_size=500, validation_split=0.2, verbose=2)
 
 """### CNN2"""
 
@@ -262,7 +250,7 @@ print(cnn2.summary())
 cnn2.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 #Training the model
-cnn2.fit(X_train_cnn, y_train, epochs=25, batch_size=500, validation_split=0.2, verbose=0)
+cnn2.fit(X_train_cnn, y_train, epochs=5, batch_size=500, validation_split=0.2, verbose=0)
 
 """### CNN3"""
 
@@ -278,7 +266,7 @@ print(cnn3.summary())
 cnn3.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 #Training the model
-cnn3.fit(X_train_cnn, y_train, epochs=25, batch_size=500, validation_split=0.2, verbose=0)
+cnn3.fit(X_train_cnn, y_train, epochs=5, batch_size=500, validation_split=0.2, verbose=0)
 
 """## CNN Model Accuracy Scores"""
 
@@ -308,52 +296,94 @@ print(f"Accuracy of CNN3: {round(cnn3_preds[1]*100)}%")
 
 
 
-"""###Testing on new data
-- Get LoadMaxPower and create a test data set 
-- check accuracy of trained models on new test data set
-"""
+"""##Testing Models on Max Supply Data"""
 
-#Trying random forest (Accuracy 94% on Min Power Data Set)
-type(rf_model)
+from sklearn.metrics import confusion_matrix
 
-#test data set
-testing = pd.read_csv(r'LoadMaxPower.csv', header=0)
-testing.head(5)
+df = pd.read_csv(r'LoadMaxPower.csv')
 
-"""#####Injecting false data into the test data"""
+df.drop(df.columns[[0,1]], axis=1, inplace=True)
+injection = inject((df.to_numpy(), [0 for i in range(len(df))]), 5, 0.5)
+features, labels = injection[0], injection[1]
 
-#Performing the false data injection
-t0 = time.perf_counter()   #timing
+"""######Injecting DoS Into test data"""
 
-max_features = []
-max_labels = []
-#looping through each row in df
-for index, values in testing.iterrows():
-  #if statement to inject half of the data
-  if np.random.random() < 0.5:
-    #get injected row through function call, passing in series of sensor values
-    injected_row = inject(values)
-    #append 1 to label of row as this network reading has been compromised
-    max_labels.append(1)
-    #append new injected values to features as list
-    max_features.append(list(injected_row[0][2:]))
-    #setting row equal to new injected row in dataframe
-    #initial_data.at[index] = injected_row[0]
-  else:
-    #append normal values and 0 label as no injection takes place
-    max_features.append(list(values[2:]))
-    max_labels.append(0)
+#Storing max features and labels as csv
+#"""
+np.savetxt('max_features.csv', features, delimiter=',')
+np.savetxt('max_labels.csv', labels, delimiter=',')
+max_features = np.array(pd.read_csv('max_features.csv'))
+max_labels = np.array(pd.read_csv('max_labels.csv')).astype(int)
+#"""
 
-t1 = time.perf_counter()   #timing
+"""####Getting the models predictions and plotting confusion matrices"""
 
-#Features and Labels into a numpy array for ML
-max_features = np.array(max_features)
-max_labels = np.array(max_labels)
+#Decision Tree predictions
+dt_pred = tree.predict(max_features)
+print(f" Decision Tree: {accuracy_score(max_labels, dt_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, dt_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
 
-print(f"--------DATA-INJECTED-------- (In {t1-t0} Seconds)")
+#KNN
+knn_pred = knn_model.predict(max_features)
+print(f" KNN: {accuracy_score(max_labels, knn_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, knn_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
 
-#predicting from data
-rf_max_predictions = rf_model.predict(max_features)
-#getting accuracy score of predictions
-print(f"Accuracy of Random Forest on Max Power Data: {round(accuracy_score(max_labels, rf_max_predictions)*100)}%")
+#SVM
+svm_pred = svm.predict(max_features)
+print(f" SVM: {accuracy_score(max_labels, svm_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, svm_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#Random Forest
+rf_pred = rf_model.predict(max_features)
+print(f" Random Forest: {accuracy_score(max_labels, rf_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, rf_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#XGBoost
+xgb_pred = x_model.predict(max_features)
+print(f" XGBoost: {accuracy_score(max_labels, xgb_pred)}")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, xgb_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#reshape features for CNN preds
+max_features_re = max_features.copy().reshape(len(max_features), 11, 1)
+
+#Predictions with CNN1
+cnn1_pred = cnn1.predict(max_features_re)
+cnn1_pred = np.array([0 if i[0] < 0.5 else 1 for i in cnn1_pred])
+#accuracy of CNN1
+print(f"Accuracy of CNN1: {accuracy_score(max_labels, cnn1_pred)}%")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, cnn1_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#Predictions with CNN2
+cnn2_pred = cnn2.predict(max_features_re)
+cnn2_pred = np.array([0 if i[0] < 0.5 else 1 for i in cnn2_pred])
+#accuracy of CNN2
+print(f"Accuracy of CNN2: {accuracy_score(max_labels, cnn2_pred)}%")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, cnn2_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+#Predictions with CNN3
+cnn3_pred = cnn3.predict(max_features_re)
+cnn3_pred = np.array([0 if i[0] < 0.5 else 1 for i in cnn3_pred])
+#accuracy of CNN3
+print(f"Accuracy of CNN3: {accuracy_score(max_labels, cnn3_pred)}%")
+#Confusion Matrix
+tn, fp, fn, tp = confusion_matrix(max_labels, cnn3_pred).ravel()
+print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
+
+
+
+"""###Ensemble Classifier - SVM, Random Forest, XGBoost, CNN2"""
 
