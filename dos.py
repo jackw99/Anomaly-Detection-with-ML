@@ -40,11 +40,24 @@ print(f" Means for all columns in the data set: \n{col_means}")
 col_vars = [np.array(df.get([f'{i}'])).var() for i in range(1, 12)]
 print(f" Variance for all columns in the data set: \n{col_vars}")
 
-"""####Plot the distributions of each feature"""
+"""####Plot the distributions of some features"""
 
 from matplotlib import pyplot as plt
 
-
+y = df['1'].to_numpy()[:100]
+y2 = df['5'].to_numpy()[:100]
+y3 = df['11'].to_numpy()[:100]
+x = np.arange(0, len(y))
+plt.figure(figsize=(8,6))
+plt.xlabel('Reading No.',fontsize=14)
+plt.ylabel('Sensor Reading',fontsize=14)
+plt.title('Sensor Readings Over Time',fontsize=16)
+plt.plot(x,y,label='Sensor 1')
+plt.plot(y2, label = 'Sensor 5')
+plt.plot(y3, label = 'Sensor 11')
+plt.legend(loc='upper right')
+#plt.savefig('LoadMinSensor1,5,11first100nonDoSorFDIA')
+plt.show()
 
 """## Denial of Service Data Injection
 - Injecting False data into the data set to mimic a DoS
@@ -94,15 +107,37 @@ labels = np.array(labels)
 
 print(f"--------DATA-INJECTED-------- (In {t1-t0} Seconds)")
 
-features.shape
+#mean and variance of sensor 1, 5 and 11 after DoS
+y = np.array([i[0] for i in features][:100])
+y2 = np.array([i[4] for i in features][:100])
+y3 = np.array([i[10] for i in features][:100])
+print(f" Sensor 1 Mean: {y.mean()}, Variance: {y.var()}")
+print(f" Sensor 2 Mean: {y2.mean()}, Variance: {y2.var()}")
+print(f" Sensor 3 Mean: {y3.mean()}, Variance: {y3.var()}")
 
-#Storing features and labels as csv
-#"""
-np.savetxt('min_features.csv', features, delimiter=',')
-np.savetxt('min_labels.csv', labels, delimiter=',')
-min_features = np.array(pd.read_csv('min_features.csv'))
-min_labels = np.array(pd.read_csv('min_labels.csv')).astype(int)
-#"""
+#plotting distributions after DoS
+y = [i[0] for i in features][:100]
+y2 = [i[4] for i in features][:100]
+y3 = [i[10] for i in features][:100]
+x = np.arange(0, len(y))
+plt.figure(figsize=(8,6))
+plt.xlabel('Reading No.',fontsize=14)
+plt.ylabel('Sensor Reading',fontsize=14)
+plt.title('Sensor Readings After DoS',fontsize=16)
+plt.plot(x,y,label='Sensor 1')
+plt.plot(y2, label = 'Sensor 5')
+plt.plot(y3, label = 'Sensor 11')
+plt.legend(loc='upper right')
+#plt.savefig('LoadMinSensor1,5,11afterDoS')
+plt.show()
+
+# #Storing features and labels as csv
+# #"""
+# np.savetxt('min_features.csv', features, delimiter=',')
+# np.savetxt('min_labels.csv', labels, delimiter=',')
+# min_features = np.array(pd.read_csv('min_features.csv'))
+# min_labels = np.array(pd.read_csv('min_labels.csv')).astype(int)
+# #"""
 
 """## Train and Test Data"""
 
@@ -155,6 +190,14 @@ svm.fit(X_train, y_train.ravel())
 svm_predictions = svm.predict(X_test)
 #accuracy score of SVM
 print(f"Accuracy of SVM: {round(accuracy_score(y_test, svm_predictions)*100)}%")
+
+#visualizing the support vectors
+support_vectors = svm.support_vectors_
+plt.scatter(X_train[:,0], X_train[:,1])
+plt.scatter(support_vectors[:,0], support_vectors[:,1], color='red')
+plt.figure(figsize=(8,6))
+#plt.title('Support Vectors')
+plt.show()
 
 """## Random Forest Classifier using SKLearn"""
 
@@ -399,8 +442,4 @@ print(f"Accuracy of CNN3: {accuracy_score(max_labels, cnn3_pred)}%")
 #Confusion Matrix
 tn, fp, fn, tp = confusion_matrix(max_labels, cnn3_pred).ravel()
 print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
-
-
-
-"""###Ensemble Classifier - SVM, Random Forest, XGBoost, CNN2"""
 

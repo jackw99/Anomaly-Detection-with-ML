@@ -76,8 +76,9 @@ def inject(data, mean, std):
   #return tuple of updated features and generated labels
   return (np.array(features), np.array(labels))
 
+#Injecting data
 initial_data.drop(initial_data.columns[[0,1]], axis=1, inplace=True)
-injection = inject((initial_data.to_numpy(), [0 for i in range(len(initial_data))]), 0.5, 0.05)
+injection = inject((initial_data.to_numpy(), [0 for i in range(len(initial_data))]), 2, 0.1)
 features, labels = injection[0], injection[1]
 
 #Storing features and labels as csv
@@ -87,35 +88,59 @@ features, labels = injection[0], injection[1]
 #features = np.array(pd.read_csv('features.csv'))
 #labels = np.array(pd.read_csv('labels.csv')).astype(int)
 
+#mean and variance of sensor 1, 5 and 11 after DoS
+y = np.array([i[0] for i in features][:100])
+y2 = np.array([i[4] for i in features][:100])
+y3 = np.array([i[10] for i in features][:100])
+print(f" Sensor 1 Mean: {y.mean()}, Variance: {y.var()}")
+print(f" Sensor 5 Mean: {y2.mean()}, Variance: {y2.var()}")
+print(f" Sensor 11 Mean: {y3.mean()}, Variance: {y3.var()}")
+
+#pyplot
+from matplotlib import pyplot as plt
+
+#Plotting false data injected values
+x = np.arange(0, len(y))
+plt.figure(figsize=(8,6))
+plt.xlabel('Reading No.',fontsize=14)
+plt.ylabel('Sensor Reading',fontsize=14)
+plt.title('Sensor Readings After FDIA',fontsize=16)
+plt.plot(x,y,label='Sensor 1')
+plt.plot(y2, label = 'Sensor 5')
+plt.plot(y3, label = 'Sensor 11')
+plt.legend(loc='upper right')
+plt.savefig('LoadMinSensorsafterFDIA')
+plt.show()
+
 """###Data Set Generation (For Testing On Other DataSets)"""
 
-#Random Generation of Data Set for testing purposes
-def generateDataSet(num_features, readings):
-  data_set = []
-  #create features according to param
-  for i in range(num_features):
-    #threshold value
-    thresh = np.random.random()
-    #randomises variance that is added
-    if thresh < 0.26:
-      #normal distribution
-      data_set.append(list(np.random.normal(20, 2, readings)))
-    elif 0.51 > thresh >= 0.26:
-      #exponential distribution
-      data_set.append(list(np.random.exponential(10, readings)))
-    elif 0.76 > thresh >= 0.51:
-      #random samples between 0 and 1
-      data_set.append(list(np.random.random(readings)))
-    else:
-      #beta distribution
-      data_set.append(list(np.random.beta(5, 4, readings)))
-  return (np.array(data_set).transpose(), np.array([0 for i in range(readings)]))
+# #Random Generation of Data Set for testing purposes
+# def generateDataSet(num_features, readings):
+#   data_set = []
+#   #create features according to param
+#   for i in range(num_features):
+#     #threshold value
+#     thresh = np.random.random()
+#     #randomises variance that is added
+#     if thresh < 0.26:
+#       #normal distribution
+#       data_set.append(list(np.random.normal(20, 2, readings)))
+#     elif 0.51 > thresh >= 0.26:
+#       #exponential distribution
+#       data_set.append(list(np.random.exponential(10, readings)))
+#     elif 0.76 > thresh >= 0.51:
+#       #random samples between 0 and 1
+#       data_set.append(list(np.random.random(readings)))
+#     else:
+#       #beta distribution
+#       data_set.append(list(np.random.beta(5, 4, readings)))
+#   return (np.array(data_set).transpose(), np.array([0 for i in range(readings)]))
 
-#generate features and labels and inject 0.5, 0.05
-fdia_data = inject(generateDataSet(11, 10000), 0.5, 0.05)
+# #generate features and labels and inject 0.5, 0.05
+# fdia_data = inject(generateDataSet(11, 10000), 0.5, 0.05)
 
-#Splitting data into train and test data
-X_train, X_test, y_train, y_test = train_test_split(fdia_data[0], fdia_data[1], test_size=0.3, random_state=5, shuffle=True)
+# #Splitting data into train and test data
+# X_train, X_test, y_train, y_test = train_test_split(fdia_data[0], fdia_data[1], test_size=0.3, random_state=5, shuffle=True)
 
 """## Train and Test Data"""
 
@@ -129,6 +154,7 @@ X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=
 
 #import decision tree classifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 
 #decision tree initialized
 tree = DecisionTreeClassifier()
@@ -166,6 +192,8 @@ svm.fit(X_train, y_train.ravel())
 svm_predictions = svm.predict(X_test)
 #accuracy score of SVM
 print(f"Accuracy of SVM: {round(accuracy_score(y_test, svm_predictions)*100)}%")
+
+#Visualizing support vector
 
 """## Random Forest Classifier using SKLearn"""
 
@@ -382,8 +410,4 @@ print(f"Accuracy of CNN3: {accuracy_score(max_labels, cnn3_pred)}%")
 #Confusion Matrix
 tn, fp, fn, tp = confusion_matrix(max_labels, cnn3_pred).ravel()
 print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
-
-
-
-"""###Ensemble Classifier - SVM, Random Forest, XGBoost, CNN2"""
 
