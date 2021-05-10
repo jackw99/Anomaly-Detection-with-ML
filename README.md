@@ -1,5 +1,5 @@
 # Anomaly-Detection-with-ML
-Implementations of machine learning for detection of common attacks in industrial IoT networks.
+Implementations of machine learning for detection of common attacks in industrial IoT networks. Offline Classification of common attacks.
 
 Attack 1: False-Data Injection Attacks
 - Attacker will inject false data (e.g. tampering with readings of sensors in a network) to try and damage the network
