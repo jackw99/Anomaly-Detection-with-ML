@@ -9,3 +9,8 @@ Attack 2: Denial of Service Attacks (DoS)
 
 - Attacker tries to prevent normal operating functions of a network by dsirupting the normal flow of the network
 - this can be done by sending numerous false values into the network to throw off sensors
+
+Attack 3: Replay Attack 
+
+- Attacker chooses a valid data transmission to continously send through the network
+- Attempts to increase network congestion and render network useless
